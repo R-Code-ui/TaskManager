@@ -1,14 +1,31 @@
 <?php
 
+use App\Models\ActivityLog;
 use App\Http\Controllers\GameController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\TaskController;
 use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
 
 Route::inertia('/', 'welcome')->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::inertia('dashboard', 'dashboard')->name('dashboard');
+    Route::get('/dashboard', function () {
+        $user = auth()->user();
+        $isAdmin = $user->hasRole('admin');
+
+        $recentActivity = ActivityLog::with('user')
+            ->when(!$isAdmin, function ($query) use ($user) {
+                $query->where('user_id', $user->id);
+            })
+            ->latest()
+            ->limit(10)
+            ->get();
+
+        return Inertia::render('Dashboard', [
+            'recentActivity' => $recentActivity,
+        ]);
+    })->name('dashboard');
 
     // Task routes
     Route::resource('tasks', TaskController::class);

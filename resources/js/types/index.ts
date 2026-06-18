@@ -1,4 +1,3 @@
-// resources/js/types/index.ts
 export type * from './auth';
 export type * from './navigation';
 export type * from './ui';
@@ -74,6 +73,17 @@ export interface GameScore {
     score: number;
     total: number;
     completed_at: string;
+}
+
+// 👇 ADDED – Activity Log type
+export interface ActivityLog {
+    id: number;
+    user_id: number;
+    user?: User;
+    action: string;
+    details: any;
+    created_at: string;
+    updated_at: string;
 }
 
 // Extend Inertia PageProps

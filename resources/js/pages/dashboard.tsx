@@ -24,7 +24,13 @@ import {
     Clock,
     TrendingUp,
     ArrowRight,
+    Activity,
 } from 'lucide-react';
+import { ActivityLog } from '@/types';
+
+interface DashboardProps {
+    recentActivity?: ActivityLog[];
+}
 
 // Fake data for stats cards
 const stats = [
@@ -101,7 +107,7 @@ const statusBadgeMap = {
     pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
 };
 
-export default function Dashboard() {
+export default function Dashboard({ recentActivity = [] }: DashboardProps) {
     return (
         <>
             <Head title="Dashboard" />
@@ -178,7 +184,7 @@ export default function Dashboard() {
                     </Card>
                 </div>
 
-                {/* Second Row: Pie Chart + Recent Tasks */}
+                {/* Second Row: Pie Chart + Recent Activity */}
                 <div className="grid gap-4 md:grid-cols-2">
                     {/* Task Distribution Pie Chart */}
                     <Card className="col-span-1">
@@ -213,35 +219,47 @@ export default function Dashboard() {
                         </CardContent>
                     </Card>
 
-                    {/* Recent Tasks List */}
+                    {/* Recent Activity Card */}
                     <Card className="col-span-1">
                         <CardHeader className="flex flex-row items-center justify-between">
-                            <CardTitle>Recent Tasks</CardTitle>
-                            <Button variant="ghost" size="sm" asChild>
-                                <a href="/tasks" className="flex items-center gap-1">
-                                    View All <ArrowRight className="h-4 w-4" />
-                                </a>
-                            </Button>
+                            <CardTitle className="flex items-center gap-2">
+                                <Activity className="h-5 w-5 text-muted-foreground" />
+                                Recent Activity
+                            </CardTitle>
                         </CardHeader>
-                        <CardContent className="space-y-4">
-                            {recentTasks.map((task) => (
-                                <div
-                                    key={task.id}
-                                    className="flex items-center justify-between border-b pb-3 last:border-0 last:pb-0"
-                                >
-                                    <div className="space-y-1">
-                                        <p className="text-sm font-medium leading-none">
-                                            {task.title}
-                                        </p>
-                                        <p className="text-xs text-muted-foreground">
-                                            Due: {task.due}
-                                        </p>
+                        <CardContent className="space-y-3 max-h-80 overflow-y-auto">
+                            {recentActivity.length === 0 ? (
+                                <p className="text-center text-sm text-muted-foreground py-4">
+                                    No recent activity.
+                                </p>
+                            ) : (
+                                recentActivity.map((log, idx) => (
+                                    <div
+                                        key={idx}
+                                        className="flex items-start gap-3 border-b pb-3 last:border-0 last:pb-0"
+                                    >
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-medium">
+                                                {log.user?.name || 'System'}
+                                                <span className="font-normal text-muted-foreground ml-1">
+                                                    {formatActivityAction(log.action)}
+                                                </span>
+                                            </p>
+                                            {log.details && (
+                                                <p className="text-xs text-muted-foreground truncate">
+                                                    {formatActivityDetails(log.details)}
+                                                </p>
+                                            )}
+                                            <p className="text-xs text-muted-foreground/70 mt-0.5">
+                                                {new Date(log.created_at).toLocaleString()}
+                                            </p>
+                                        </div>
+                                        <Badge variant="outline" className="shrink-0 text-xs">
+                                            {formatActionBadge(log.action)}
+                                        </Badge>
                                     </div>
-                                    <Badge className={statusBadgeMap[task.status]}>
-                                        {task.status.replace('_', ' ')}
-                                    </Badge>
-                                </div>
-                            ))}
+                                ))
+                            )}
                         </CardContent>
                     </Card>
                 </div>
@@ -258,3 +276,41 @@ Dashboard.layout = {
         },
     ],
 };
+
+// Helper functions
+function formatActivityAction(action: string): string {
+    const map: Record<string, string> = {
+        logged_in: 'logged in',
+        logged_out: 'logged out',
+        task_created: 'created a task',
+        task_updated: 'updated a task',
+        task_deleted: 'deleted a task',
+        message_sent: 'sent a message',
+        game_played: 'played a game',
+        game_updated: 'updated a game',
+    };
+    return map[action] || action.replace('_', ' ');
+}
+
+function formatActivityDetails(details: any): string {
+    if (!details) return '';
+    if (details.title) return `"${details.title}"`;
+    if (details.subject) return `"${details.subject}"`;
+    if (details.game_name) return `Game: ${details.game_name}`;
+    if (details.game) return `Game: ${details.game}`;
+    return '';
+}
+
+function formatActionBadge(action: string): string {
+    const map: Record<string, string> = {
+        logged_in: 'Login',
+        logged_out: 'Logout',
+        task_created: 'Create',
+        task_updated: 'Update',
+        task_deleted: 'Delete',
+        message_sent: 'Message',
+        game_played: 'Game',
+        game_updated: 'Update',
+    };
+    return map[action] || action;
+}

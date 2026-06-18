@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Task;
+use App\Helpers\ActivityHelper;  // 👈 ADDED
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
@@ -43,7 +44,13 @@ class TaskController extends Controller
             'status' => 'required|in:pending,in_progress,completed',
         ]);
 
-        auth()->user()->tasks()->create($validated);
+        $task = auth()->user()->tasks()->create($validated);
+
+        // 👇 ADDED – Log task creation
+        ActivityHelper::log(auth()->id(), 'task_created', [
+            'task_id' => $task->id,
+            'title' => $task->title,
+        ]);
 
         return redirect()->route('tasks.index')->with('success', 'Task created.');
     }
@@ -72,12 +79,26 @@ class TaskController extends Controller
         ]);
 
         $task->update($validated);
+
+        // 👇 ADDED – Log task update
+        ActivityHelper::log(auth()->id(), 'task_updated', [
+            'task_id' => $task->id,
+            'title' => $task->title,
+        ]);
+
         return redirect()->route('tasks.index')->with('success', 'Task updated.');
     }
 
     public function destroy(Task $task)
     {
         Gate::authorize('delete', $task);
+
+        // 👇 ADDED – Log task deletion (before soft delete)
+        ActivityHelper::log(auth()->id(), 'task_deleted', [
+            'task_id' => $task->id,
+            'title' => $task->title,
+        ]);
+
         $task->delete();
         return redirect()->route('tasks.index')->with('success', 'Task deleted.');
     }

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Message;
 use App\Models\User;
+use App\Helpers\ActivityHelper;  // 👈 ADDED
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
@@ -16,12 +17,10 @@ class MessageController extends Controller
         $user = auth()->user();
 
         if ($user->hasRole('admin')) {
-            // Admin sees all messages (all users)
             $messages = Message::with(['sender', 'receiver'])
                 ->latest()
                 ->paginate(15);
         } else {
-            // Regular user sees only messages they sent or received
             $messages = Message::where('sender_id', $user->id)
                 ->orWhere('receiver_id', $user->id)
                 ->with(['sender', 'receiver'])
@@ -71,6 +70,13 @@ class MessageController extends Controller
             'subject' => $validated['subject'],
             'body' => $validated['body'],
             'parent_id' => $validated['parent_id'] ?? null,
+        ]);
+
+        // 👇 ADDED – Log message sent
+        ActivityHelper::log(auth()->id(), 'message_sent', [
+            'message_id' => $message->id,
+            'receiver_id' => $validated['receiver_id'],
+            'subject' => $validated['subject'],
         ]);
 
         return redirect()->route('messages.index')
